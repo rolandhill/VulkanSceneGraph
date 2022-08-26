@@ -551,6 +551,13 @@ bool Xcb_Window::visible() const
     return _window!=0 && _windowMapped;
 }
 
+void Xcb_Window::setTitle(std::string title)
+{
+    traits()->windowTitle = title;
+    xcb_change_property(_connection, XCB_PROP_MODE_REPLACE, _window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, traits()->windowTitle.size(), traits()->windowTitle.data());
+    xcb_flush(_connection);
+}
+
 void Xcb_Window::releaseWindow()
 {
     _window = {};

@@ -464,3 +464,8 @@ bool Window::pollEvents(vsg::UIEvents& events)
 
     return false;
 }
+
+void Window::setTitle(std::string title)
+{
+    _traits->windowTitle = title;
+}

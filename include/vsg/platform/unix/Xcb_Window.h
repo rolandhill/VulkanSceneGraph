@@ -63,6 +63,8 @@ namespace vsgXcb
 
         bool visible() const override;
 
+        void setTitle(std::string title) override;
+
         void releaseWindow() override;
         void releaseConnection() override;
 

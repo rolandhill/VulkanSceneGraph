@@ -486,6 +486,13 @@ bool Win32_Window::visible() const
     return _window!=0 && _windowMapped;
 }
 
+void Win32_Window::setTitle(std::string title)
+{
+    traits()->windowTitle = title;
+    SetWindowTextW(_window, title.c_str());
+}
+
+
 bool Win32_Window::pollEvents(vsg::UIEvents& events)
 {
     vsg::clock::time_point event_time = vsg::clock::now();

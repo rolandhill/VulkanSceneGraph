@@ -126,6 +126,8 @@ namespace vsgWin32
 
         bool visible() const override;
 
+        void setTitle(std::string title) override;
+
         bool pollEvents(vsg::UIEvents& events) override;
 
         void resize() override;
