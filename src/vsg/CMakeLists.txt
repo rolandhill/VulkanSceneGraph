@@ -215,6 +215,7 @@ set(SOURCES
 
     ui/UIEvent.cpp
     ui/ApplicationEvent.cpp
+    ui/FrameStamp.cpp
     ui/KeyEvent.cpp
     ui/TouchEvent.cpp
     ui/PointerEvent.cpp
@@ -317,6 +318,10 @@ if (VSG_SUPPORTS_Windowing)
         else()
             set(LIBRARIES ${LIBRARIES} PRIVATE ${AndroidLib})
         endif()
+    elseif (OHOS_ARCH)  # OpenHarmony
+        set(HEADERS ${HEADERS} ${VSG_SOURCE_DIR}/include/vsg/platform/harmony/Harmony_Window.h)
+        set(SOURCES ${SOURCES} platform/harmony/Harmony_Window.cpp)
+        set(LIBRARIES ${LIBRARIES} PRIVATE ace_ndk.z native_window)
     elseif (WIN32)
         set(SOURCES ${SOURCES} platform/win32/Win32_Window.cpp)
     elseif (IOS)

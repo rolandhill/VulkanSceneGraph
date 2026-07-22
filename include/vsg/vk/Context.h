@@ -70,7 +70,7 @@ namespace vsg
 
         Context(const Context& context);
 
-        virtual ~Context();
+        ~Context() override;
 
         const uint32_t deviceID = 0;
         ref_ptr<Device> device;
@@ -87,7 +87,7 @@ namespace vsg
         ref_ptr<CommandBuffer> getOrCreateCommandBuffer();
 
         /// reserve resources that may be needed during compile traversal.
-        void reserve(const ResourceRequirements& requirements);
+        VkResult reserve(ResourceRequirements& requirements);
 
         ref_ptr<DescriptorSet::Implementation> allocateDescriptorSet(DescriptorSetLayout* descriptorSetLayout);
 

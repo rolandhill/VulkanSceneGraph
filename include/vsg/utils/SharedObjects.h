@@ -73,7 +73,7 @@ namespace vsg
         void report(vsg::LogOutput& output);
 
     protected:
-        virtual ~SharedObjects();
+        ~SharedObjects() override;
 
         mutable std::recursive_mutex _mutex;
         std::map<std::type_index, ref_ptr<Object>> _defaults;

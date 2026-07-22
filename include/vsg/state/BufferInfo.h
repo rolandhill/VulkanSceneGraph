@@ -36,7 +36,12 @@ namespace vsg
         ref_ptr<Object> clone(const CopyOp& copyop = {}) const override;
         int compare(const Object& rhs_object) const override;
 
+        void take(BufferInfo& src);
+
         void release();
+
+        /// compute size of associated data
+        VkDeviceSize computeDataSize() const;
 
         /// Copy data to the VkBuffer(s) for all Devices associated with vsg::Buffer
         /// Requires associated buffer memory to be host visible, for non host visible buffers you must use a staging buffer
@@ -69,7 +74,7 @@ namespace vsg
         vk_buffer<ModifiedCount> copiedModifiedCounts;
 
     protected:
-        virtual ~BufferInfo();
+        ~BufferInfo() override;
     };
     VSG_type_name(vsg::BufferInfo);
 

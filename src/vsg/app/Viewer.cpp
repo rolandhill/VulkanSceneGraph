@@ -92,7 +92,7 @@ void Viewer::removeWindow(ref_ptr<Window> window)
     CommandGraphs commandGraphs;
     for (const auto& task : recordAndSubmitTasks)
     {
-        for (auto& cg : task->commandGraphs)
+        for (const auto& cg : task->commandGraphs)
         {
             if (cg->window != window) commandGraphs.push_back(cg);
         }
@@ -275,15 +275,16 @@ void Viewer::handleEvents()
     }
 }
 
-void Viewer::compile(ref_ptr<ResourceHints> hints)
+CompileResult Viewer::compile(ref_ptr<ResourceHints> hints)
 {
     CPU_INSTRUMENTATION_L1_NC(instrumentation, "Viewer compile", COLOR_COMPILE);
 
     if (recordAndSubmitTasks.empty())
     {
-        return;
+        return {};
     }
 
+    CompileResult result;
     bool containsPagedLOD = false;
     ref_ptr<DatabasePager> databasePager;
 
@@ -382,13 +383,22 @@ void Viewer::compile(ref_ptr<ResourceHints> hints)
     if (databasePager && !databasePager->compileManager)
     {
         databasePager->compileManager = compileManager;
+        compileManager->resourceScavenger = ResourceScavenger::create(databasePager);
     }
 
     for (auto& task : recordAndSubmitTasks)
     {
+        if (hints)
+        {
+            if (auto deviceMemoryBufferPools = task->device->deviceMemoryBufferPools.ref_ptr())
+            {
+                deviceMemoryBufferPools->allocatedMemoryLimit = hints->allocatedMemoryLimit;
+            }
+        }
+
         auto& deviceResource = deviceResourceMap[task->device];
         auto& resourceRequirements = deviceResource.collectResources.requirements;
-        compileManager->compileTask(task, resourceRequirements);
+        result.add(compileManager->compileTask(task, resourceRequirements));
         task->transferTask->assign(resourceRequirements.dynamicData);
     }
 
@@ -403,6 +413,8 @@ void Viewer::compile(ref_ptr<ResourceHints> hints)
                 task->databasePager->start();
         }
     }
+
+    return result;
 }
 
 void Viewer::assignRecordAndSubmitTaskAndPresentation(CommandGraphs in_commandGraphs)
@@ -570,7 +582,7 @@ void Viewer::addRecordAndSubmitTaskAndPresentation(CommandGraphs commandGraphs)
     CommandGraphs combinedCommandGraphs;
     for (const auto& task : recordAndSubmitTasks)
     {
-        for (auto& cg : task->commandGraphs)
+        for (const auto& cg : task->commandGraphs)
         {
             combinedCommandGraphs.push_back(cg);
         }
@@ -782,15 +794,20 @@ void Viewer::update()
 {
     CPU_INSTRUMENTATION_L1_NC(instrumentation, "Viewer update", COLOR_UPDATE);
 
+    CompileResult cr;
+
     // merge any updates from the DatabasePager
     for (const auto& task : recordAndSubmitTasks)
     {
         if (task->databasePager)
         {
-            CompileResult cr;
             task->databasePager->updateSceneGraph(_frameStamp, cr);
-            if (cr.requiresViewerUpdate()) updateViewer(*this, cr);
         }
+    }
+
+    if (cr.requiresViewerUpdate(this))
+    {
+        updateViewer(*this, cr);
     }
 
     // run update operations

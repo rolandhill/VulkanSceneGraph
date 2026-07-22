@@ -54,7 +54,7 @@ namespace vsg
         mutable std::mutex mutex;
 
     protected:
-        virtual ~DescriptorPool();
+        ~DescriptorPool() override;
 
         VkDescriptorPool _descriptorPool;
         ref_ptr<Device> _device;

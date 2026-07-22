@@ -189,7 +189,7 @@ void CompileTraversal::add(const Viewer& viewer, const ResourceRequirements& res
         ref_ptr<TransferTask> transferTask;
 
         AddViews(CompileTraversal* in_ct, const ResourceRequirements& in_rr) :
-            ct(in_ct), resourceRequirements(in_rr){};
+            ct(in_ct), resourceRequirements(in_rr) {};
 
         const char* className() const noexcept override { return "vsg::CompileTraversal::AddViews"; }
 
@@ -325,7 +325,7 @@ void CompileTraversal::apply(CommandGraph& commandGraph)
 
     for (const auto& context : contexts)
     {
-        commandGraph.maxSlots.merge(context->resourceRequirements.maxSlots);
+        commandGraph.maxSlots.update(context->resourceRequirements.maxSlots);
     }
 
     commandGraph.traverse(*this);
@@ -339,7 +339,7 @@ void CompileTraversal::apply(SecondaryCommandGraph& secondaryCommandGraph)
 
     for (auto& context : contexts)
     {
-        secondaryCommandGraph.maxSlots.merge(context->resourceRequirements.maxSlots);
+        secondaryCommandGraph.maxSlots.update(context->resourceRequirements.maxSlots);
 
         // save previous states to be restored after traversal
         auto previousRenderPass = context->renderPass;

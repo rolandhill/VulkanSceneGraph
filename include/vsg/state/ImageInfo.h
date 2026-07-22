@@ -47,6 +47,9 @@ namespace vsg
         ref_ptr<ImageView> imageView;
         VkImageLayout imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+        /// compute size of associated data
+        VkDeviceSize computeDataSize() const;
+
         /// return true if the ImageInfo's data has been modified and should be copied to the buffer
         bool requiresCopy(uint32_t deviceID) const
         {
@@ -66,7 +69,7 @@ namespace vsg
         vk_buffer<ModifiedCount> copiedModifiedCounts;
 
     protected:
-        virtual ~ImageInfo();
+        ~ImageInfo() override;
     };
     VSG_type_name(vsg::ImageInfo);
 

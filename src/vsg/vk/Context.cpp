@@ -193,13 +193,19 @@ ShaderCompiler* Context::getOrCreateShaderCompiler()
     return shaderCompiler;
 }
 
-void Context::reserve(const ResourceRequirements& requirements)
+VkResult Context::reserve(ResourceRequirements& requirements)
 {
     CPU_INSTRUMENTATION_L2_NC(instrumentation, "Context reserve", COLOR_COMPILE)
 
-    resourceRequirements.maxSlots.merge(requirements.maxSlots);
+    VkResult result = VK_SUCCESS;
+
+    if (deviceMemoryBufferPools->compileTraversalUseReserve) result = deviceMemoryBufferPools->reserve(requirements);
+
+    resourceRequirements.maxSlots.update(requirements.maxSlots);
 
     descriptorPools->reserve(requirements);
+
+    return result;
 }
 
 ref_ptr<DescriptorSet::Implementation> Context::allocateDescriptorSet(DescriptorSetLayout* descriptorSetLayout)

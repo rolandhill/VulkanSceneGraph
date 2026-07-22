@@ -22,7 +22,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using namespace vsg;
 
-// thread safe container for managing the deviceID for each vsg;:Device
+// thread safe container for managing the deviceID for each vsg::Device
 static std::mutex s_DeviceCountMutex;
 static std::vector<bool> s_ActiveDevices;
 
@@ -53,7 +53,6 @@ static void releaseDeviceID(uint32_t deviceID)
 
 Device::Device(PhysicalDevice* physicalDevice, const QueueSettings& queueSettings, Names layers, Names deviceExtensions, const DeviceFeatures* deviceFeatures, AllocationCallbacks* allocator) :
     deviceID(getUniqueDeviceID()),
-    enabledExtensions(deviceExtensions),
     _instance(physicalDevice->getInstance()),
     _physicalDevice(physicalDevice),
     _allocator(allocator)
@@ -115,6 +114,11 @@ Device::Device(PhysicalDevice* physicalDevice, const QueueSettings& queueSetting
         deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 #endif
 
+    if (supportsApiVersion(VK_API_VERSION_1_1) && _physicalDevice->supportsDeviceExtension(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME))
+    {
+        deviceExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+    }
+
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -162,6 +166,7 @@ Device::Device(PhysicalDevice* physicalDevice, const QueueSettings& queueSetting
         }
     }
 
+    const_cast<Names&>(enabledExtensions) = deviceExtensions;
     _extensions = DeviceExtensions::create(this);
 }
 
@@ -204,4 +209,63 @@ bool Device::supportsDeviceExtension(const char* extensionName) const
 {
     auto compare = [&](const char* rhs) { return strcmp(extensionName, rhs) == 0; };
     return (std::find_if(enabledExtensions.begin(), enabledExtensions.end(), compare) != enabledExtensions.end());
+}
+
+VkDeviceSize Device::availableMemory(VkMemoryPropertyFlags memoryPropertiesFlags, double allocatedMemoryLimit) const
+{
+    if (_extensions->memory_budget)
+    {
+        VkPhysicalDeviceMemoryBudgetPropertiesEXT memoryBudget;
+        memoryBudget.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+        memoryBudget.pNext = nullptr;
+
+        VkPhysicalDeviceMemoryProperties2 dmp;
+        dmp.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+        dmp.pNext = &memoryBudget;
+
+        vkGetPhysicalDeviceMemoryProperties2(*(getPhysicalDevice()), &dmp);
+
+        auto& memoryProperties = dmp.memoryProperties;
+
+        VkDeviceSize availableSpace = 0;
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+        {
+            if ((memoryProperties.memoryTypes[i].propertyFlags & memoryPropertiesFlags) == memoryPropertiesFlags) // supported
+            {
+                uint32_t heapIndex = memoryProperties.memoryTypes[i].heapIndex;
+
+                VkDeviceSize heapBudget = static_cast<VkDeviceSize>(static_cast<double>(memoryBudget.heapBudget[heapIndex]) * allocatedMemoryLimit);
+                VkDeviceSize heapUsage = memoryBudget.heapUsage[heapIndex];
+                VkDeviceSize heapAvailable = (heapUsage < heapBudget) ? heapBudget - heapUsage : 0;
+                availableSpace += heapAvailable;
+
+                break;
+            }
+        }
+
+        return availableSpace;
+    }
+    else
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties;
+        vkGetPhysicalDeviceMemoryProperties(*(getPhysicalDevice()), &memoryProperties);
+
+        VkDeviceSize availableSpace = 0;
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+        {
+            if ((memoryProperties.memoryTypes[i].propertyFlags & memoryPropertiesFlags) == memoryPropertiesFlags) // supported
+            {
+                uint32_t heapIndex = memoryProperties.memoryTypes[i].heapIndex;
+
+                VkDeviceSize heapBudget = static_cast<VkDeviceSize>(static_cast<double>(memoryProperties.memoryHeaps[heapIndex].size) * allocatedMemoryLimit);;
+
+                // unable to estimate usage, so assume whole budget is available and let calling code gracefully handle any memory allocation failures.
+                availableSpace += heapBudget;
+
+                break;
+            }
+        }
+
+        return availableSpace;
+    }
 }

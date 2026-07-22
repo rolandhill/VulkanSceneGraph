@@ -44,7 +44,7 @@ namespace vsg
         virtual void compile(Context& context);
 
     protected:
-        virtual ~ImageView();
+        ~ImageView() override;
 
         struct VulkanData
         {

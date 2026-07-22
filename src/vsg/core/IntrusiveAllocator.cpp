@@ -431,7 +431,7 @@ bool IntrusiveAllocator::MemoryBlock::deallocate(void* ptr, std::size_t /*size*/
             memory[P].next += memory[C].next;
             if (N != 0) memory[N].previous = memory[P].next;
 
-                // freeList linked list entries will not need updating.
+            // freeList linked list entries will not need updating.
 
 #if DEBUG_ALLOCATOR
             if (!validate())

@@ -39,6 +39,8 @@ RecordAndSubmitTask::RecordAndSubmitTask(Device* in_device, uint32_t numBuffers)
 
     earlyTransferConsumerCompletedSemaphore = Semaphore::create(in_device);
     lateTransferConsumerCompletedSemaphore = Semaphore::create(in_device);
+
+    if (!device->transferTask) device->transferTask = transferTask;
 }
 
 void RecordAndSubmitTask::advance()
@@ -304,7 +306,7 @@ void vsg::updateTasks(RecordAndSubmitTasks& tasks, ref_ptr<CompileManager> compi
     {
         for (const auto& commandGraph : task->commandGraphs)
         {
-            commandGraph->maxSlots.merge(compileResult.maxSlots);
+            commandGraph->maxSlots.update(compileResult.maxSlots);
         }
     }
 
