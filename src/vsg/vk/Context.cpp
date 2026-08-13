@@ -153,6 +153,7 @@ Context::Context(const Context& context) :
     commandPool(context.commandPool),
     deviceMemoryBufferPools(context.deviceMemoryBufferPools),
     stagingMemoryBufferPools(context.stagingMemoryBufferPools),
+    transferTask(context.transferTask),
     scratchBufferSize(context.scratchBufferSize)
 {
     scratchMemory = ScratchMemory::create(4096);
@@ -168,7 +169,7 @@ Context::~Context()
 
 void Context::reset()
 {
-    if ((commands.size()>0) || bufferInfosToCopy.size()>0 || copyImageCmd || copyBufferCmd)
+    if ((commands.size() > 0) || bufferInfosToCopy.size() > 0 || copyImageCmd || copyBufferCmd)
     {
         vsg::info("Context::reset() commands.size() = ", commands.size(), ", bufferInfosToCopy.size() = ", bufferInfosToCopy.size(), ", copyImageCmd = ", copyBufferCmd, ", copyBufferCmd= ", copyBufferCmd);
     }
@@ -180,7 +181,6 @@ void Context::reset()
     copyImageCmd.reset();
     copyBufferCmd.reset();
 }
-
 
 ref_ptr<CommandBuffer> Context::getOrCreateCommandBuffer()
 {
@@ -316,8 +316,7 @@ bool Context::record()
     {
         COMMAND_BUFFER_INSTRUMENTATION(instrumentation, *commandBuffer, "Context record", COLOR_COMPILE)
 
-        vsg::warn("Context::record() Need to implement copying of data.");
-
+        if ((bufferInfosToCopy.size() + imageInfosToCopy.size()) > 0) vsg::warn("Context::record() ", this, " Need to implement copying of data.");
 
         // issue commands of interest
         {
@@ -373,7 +372,7 @@ void Context::waitForCompletion()
 {
     CPU_INSTRUMENTATION_L1_NC(instrumentation, "Context waitForCompletion", COLOR_COMPILE)
 
-    vsg::info("Context::waitForCompletion() ", this);
+    vsg::debug("Context::waitForCompletion() ", this);
 
     if (!requiresWaitForCompletion || !commandBuffer || !fence)
     {
@@ -417,13 +416,9 @@ bool Context::createBufferAndTransferData(const BufferInfoList& bufferInfoList, 
 #if 1
     if (VkResult result = deviceMemoryBufferPools->reserve(bufferInfoList, alignment, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, sharingMode, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); result == VK_SUCCESS)
     {
-#if 1
         bufferInfosToCopy.reserve(bufferInfosToCopy.size() + bufferInfoList.size());
         bufferInfosToCopy.insert(bufferInfosToCopy.end(), bufferInfoList.begin(), bufferInfoList.end());
-#else
-        if (transferTask) transferTask->assign(bufferInfoList);
-        else warn("vsg::createBufferAndTransferData() transfer task missing, need to implement transfer.");
-#endif
+
         return true;
     }
     else
