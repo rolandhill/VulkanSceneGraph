@@ -146,16 +146,14 @@ namespace vsg
 
         ref_ptr<MemoryBufferPools> deviceMemoryBufferPools;
         ref_ptr<MemoryBufferPools> stagingMemoryBufferPools;
+        ref_ptr<TransferTask> transferTask;
 
         // RTX ray tracing
         VkDeviceSize scratchBufferSize;
         std::vector<ref_ptr<BuildAccelerationStructureCommand>> buildAccelerationStructureCommands;
 
-        ref_ptr<TransferTask> transferTask;
-
         bool createBufferAndTransferData(const BufferInfoList& bufferInfoList, VkBufferUsageFlags usage, VkSharingMode sharingMode);
         bool copy(const ImageInfoList& imageInfoList);
-
     };
     VSG_type_name(vsg::Context);
 
