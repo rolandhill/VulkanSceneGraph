@@ -275,6 +275,11 @@ void Window::buildSwapchain()
         _frames.clear();
         _indices.clear();
 
+        // discard the image available semaphores, otherwise they accumulate on every rebuild and any left
+        // signaled by an acquire that returned VK_SUBOPTIMAL_KHR (image discarded, semaphore never waited on)
+        // gets handed back to vkAcquireNextImageKHR while still signaled.
+        _availableSemaphores.clear();
+
         _depthImageView.reset();
         _depthImage.reset();
 
